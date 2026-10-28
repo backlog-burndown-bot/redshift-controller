@@ -41,6 +41,8 @@ import (
 	svctypes "github.com/aws-controllers-k8s/redshift-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/redshift-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/redshift-controller/pkg/resource/cluster_parameter_group"
+
 	"github.com/aws-controllers-k8s/redshift-controller/pkg/version"
 )
 

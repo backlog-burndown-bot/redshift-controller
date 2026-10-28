@@ -70,6 +70,26 @@ rules:
   - list
   - watch
 - apiGroups:
+  - redshift.services.k8s.aws
+  resources:
+  - clusterparametergroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - redshift.services.k8s.aws
+  resources:
+  - clusterparametergroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - services.k8s.aws
   resources:
   - fieldexports

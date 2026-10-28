@@ -16,6 +16,7 @@ rules:
 - apiGroups:
   - redshift.services.k8s.aws
   resources:
+  - clusterparametergroups
   verbs:
   - get
   - list

@@ -25,3 +25,672 @@ var (
 	_ = &metav1.Time{}
 	_ = ackv1alpha1.AWSAccountID("")
 )
+
+// A name value pair that describes an aspect of an account.
+type AccountAttribute struct {
+	AttributeName *string `json:"attributeName,omitempty"`
+}
+
+// Describes an Amazon Web Services account authorized to restore a snapshot.
+type AccountWithRestoreAccess struct {
+	AccountAlias *string `json:"accountAlias,omitempty"`
+	AccountID    *string `json:"accountID,omitempty"`
+}
+
+// Contains information about the custom domain name association.
+type Association struct {
+	CustomDomainCertificateARN *string `json:"customDomainCertificateARN,omitempty"`
+}
+
+// Describes an attribute value.
+type AttributeValueTarget struct {
+	AttributeValue *string `json:"attributeValue,omitempty"`
+}
+
+// Describes an authentication profile.
+type AuthenticationProfile struct {
+	AuthenticationProfileContent *string `json:"authenticationProfileContent,omitempty"`
+}
+
+// The authorized token issuer for the Amazon Redshift IAM Identity Center application.
+type AuthorizedTokenIssuer struct {
+	TrustedTokenIssuerARN *string `json:"trustedTokenIssuerARN,omitempty"`
+}
+
+// Describes an availability zone.
+type AvailabilityZone struct {
+	Name *string `json:"name,omitempty"`
+}
+
+// A cluster ID and custom domain name tied to a specific certificate. These
+// are typically returned in a list.
+type CertificateAssociation struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+	CustomDomainName  *string `json:"customDomainName,omitempty"`
+}
+
+// Describes a cluster.
+type Cluster struct {
+	AllowVersionUpgrade                    *bool   `json:"allowVersionUpgrade,omitempty"`
+	AvailabilityZone                       *string `json:"availabilityZone,omitempty"`
+	AvailabilityZoneRelocationStatus       *string `json:"availabilityZoneRelocationStatus,omitempty"`
+	CatalogARN                             *string `json:"catalogARN,omitempty"`
+	ClusterAvailabilityStatus              *string `json:"clusterAvailabilityStatus,omitempty"`
+	ClusterIdentifier                      *string `json:"clusterIdentifier,omitempty"`
+	ClusterNamespaceARN                    *string `json:"clusterNamespaceARN,omitempty"`
+	ClusterPublicKey                       *string `json:"clusterPublicKey,omitempty"`
+	ClusterRevisionNumber                  *string `json:"clusterRevisionNumber,omitempty"`
+	ClusterStatus                          *string `json:"clusterStatus,omitempty"`
+	ClusterSubnetGroupName                 *string `json:"clusterSubnetGroupName,omitempty"`
+	ClusterVersion                         *string `json:"clusterVersion,omitempty"`
+	CustomDomainCertificateARN             *string `json:"customDomainCertificateARN,omitempty"`
+	CustomDomainName                       *string `json:"customDomainName,omitempty"`
+	DBName                                 *string `json:"dbName,omitempty"`
+	DefaultIAMRoleARN                      *string `json:"defaultIAMRoleARN,omitempty"`
+	ElasticResizeNumberOfNodeOptions       *string `json:"elasticResizeNumberOfNodeOptions,omitempty"`
+	Encrypted                              *bool   `json:"encrypted,omitempty"`
+	EnhancedVPCRouting                     *bool   `json:"enhancedVPCRouting,omitempty"`
+	ExpectedNextSnapshotScheduleTimeStatus *string `json:"expectedNextSnapshotScheduleTimeStatus,omitempty"`
+	ExtraComputeForAutomaticOptimization   *string `json:"extraComputeForAutomaticOptimization,omitempty"`
+	IPAddressType                          *string `json:"ipAddressType,omitempty"`
+	KMSKeyID                               *string `json:"kmsKeyID,omitempty"`
+	LakehouseRegistrationStatus            *string `json:"lakehouseRegistrationStatus,omitempty"`
+	MaintenanceTrackName                   *string `json:"maintenanceTrackName,omitempty"`
+	MasterPasswordSecretARN                *string `json:"masterPasswordSecretARN,omitempty"`
+	MasterPasswordSecretKMSKeyID           *string `json:"masterPasswordSecretKMSKeyID,omitempty"`
+	MasterUsername                         *string `json:"masterUsername,omitempty"`
+	ModifyStatus                           *string `json:"modifyStatus,omitempty"`
+	MultiAZ                                *string `json:"multiAZ,omitempty"`
+	NodeType                               *string `json:"nodeType,omitempty"`
+	PreferredMaintenanceWindow             *string `json:"preferredMaintenanceWindow,omitempty"`
+	PubliclyAccessible                     *bool   `json:"publiclyAccessible,omitempty"`
+	SnapshotScheduleIdentifier             *string `json:"snapshotScheduleIdentifier,omitempty"`
+	Tags                                   []*Tag  `json:"tags,omitempty"`
+	VPCID                                  *string `json:"vpcID,omitempty"`
+}
+
+type ClusterAssociatedToSchedule struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+}
+
+// Describes a ClusterDbRevision.
+type ClusterDBRevision struct {
+	ClusterIdentifier       *string `json:"clusterIdentifier,omitempty"`
+	CurrentDatabaseRevision *string `json:"currentDatabaseRevision,omitempty"`
+}
+
+// An Identity and Access Management (IAM) role that can be used by the associated
+// Amazon Redshift cluster to access other Amazon Web Services services.
+type ClusterIAMRole struct {
+	ApplyStatus *string `json:"applyStatus,omitempty"`
+	IAMRoleARN  *string `json:"iamRoleARN,omitempty"`
+}
+
+// The identifier of a node in a cluster.
+type ClusterNode struct {
+	NodeRole         *string `json:"nodeRole,omitempty"`
+	PrivateIPAddress *string `json:"privateIPAddress,omitempty"`
+	PublicIPAddress  *string `json:"publicIPAddress,omitempty"`
+}
+
+// Describes the status of a parameter group.
+type ClusterParameterGroupStatus_SDK struct {
+	ParameterApplyStatus *string `json:"parameterApplyStatus,omitempty"`
+	ParameterGroupName   *string `json:"parameterGroupName,omitempty"`
+}
+
+// Describes a parameter group.
+type ClusterParameterGroup_SDK struct {
+	Description          *string `json:"description,omitempty"`
+	ParameterGroupFamily *string `json:"parameterGroupFamily,omitempty"`
+	ParameterGroupName   *string `json:"parameterGroupName,omitempty"`
+	Tags                 []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes the status of a parameter group.
+type ClusterParameterStatus struct {
+	ParameterApplyErrorDescription *string `json:"parameterApplyErrorDescription,omitempty"`
+	ParameterApplyStatus           *string `json:"parameterApplyStatus,omitempty"`
+	ParameterName                  *string `json:"parameterName,omitempty"`
+}
+
+// Describes a security group.
+type ClusterSecurityGroup struct {
+	ClusterSecurityGroupName *string `json:"clusterSecurityGroupName,omitempty"`
+	Description              *string `json:"description,omitempty"`
+	Tags                     []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes a cluster security group.
+type ClusterSecurityGroupMembership struct {
+	ClusterSecurityGroupName *string `json:"clusterSecurityGroupName,omitempty"`
+	Status                   *string `json:"status,omitempty"`
+}
+
+// Returns the destination region and retention period that are configured for
+// cross-region snapshot copy.
+type ClusterSnapshotCopyStatus struct {
+	DestinationRegion     *string `json:"destinationRegion,omitempty"`
+	SnapshotCopyGrantName *string `json:"snapshotCopyGrantName,omitempty"`
+}
+
+// Describes a subnet group.
+type ClusterSubnetGroup struct {
+	ClusterSubnetGroupName *string `json:"clusterSubnetGroupName,omitempty"`
+	Description            *string `json:"description,omitempty"`
+	SubnetGroupStatus      *string `json:"subnetGroupStatus,omitempty"`
+	Tags                   []*Tag  `json:"tags,omitempty"`
+	VPCID                  *string `json:"vpcID,omitempty"`
+}
+
+// Describes a cluster version, including the parameter group family and description
+// of the version.
+type ClusterVersion struct {
+	ClusterParameterGroupFamily *string `json:"clusterParameterGroupFamily,omitempty"`
+	ClusterVersion              *string `json:"clusterVersion,omitempty"`
+	Description                 *string `json:"description,omitempty"`
+}
+
+type DataShare struct {
+	AllowPubliclyAccessibleConsumers *bool   `json:"allowPubliclyAccessibleConsumers,omitempty"`
+	DataShareARN                     *string `json:"dataShareARN,omitempty"`
+	ManagedBy                        *string `json:"managedBy,omitempty"`
+	ProducerARN                      *string `json:"producerARN,omitempty"`
+}
+
+// The association of a datashare from a producer account with a data consumer.
+type DataShareAssociation struct {
+	ConsumerIdentifier *string `json:"consumerIdentifier,omitempty"`
+	ConsumerRegion     *string `json:"consumerRegion,omitempty"`
+}
+
+// Describes the status of a cluster while it is in the process of resizing
+// with an incremental resize.
+type DataTransferProgress struct {
+	Status *string `json:"status,omitempty"`
+}
+
+// Describes the default cluster parameters for a parameter group family.
+type DefaultClusterParameters struct {
+	Marker               *string      `json:"marker,omitempty"`
+	ParameterGroupFamily *string      `json:"parameterGroupFamily,omitempty"`
+	Parameters           []*Parameter `json:"parameters,omitempty"`
+}
+
+// Describes a deferred maintenance window
+type DeferredMaintenanceWindow struct {
+	DeferMaintenanceIdentifier *string `json:"deferMaintenanceIdentifier,omitempty"`
+}
+
+type DeleteClusterSnapshotMessage struct {
+	SnapshotClusterIdentifier *string `json:"snapshotClusterIdentifier,omitempty"`
+	SnapshotIdentifier        *string `json:"snapshotIdentifier,omitempty"`
+}
+
+// Describes an Amazon EC2 security group.
+type EC2SecurityGroup struct {
+	EC2SecurityGroupName    *string `json:"ec2SecurityGroupName,omitempty"`
+	EC2SecurityGroupOwnerID *string `json:"ec2SecurityGroupOwnerID,omitempty"`
+	Status                  *string `json:"status,omitempty"`
+	Tags                    []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes the status of the elastic IP (EIP) address.
+type ElasticIPStatus struct {
+	ElasticIP *string `json:"elasticIP,omitempty"`
+	Status    *string `json:"status,omitempty"`
+}
+
+// Describes a connection endpoint.
+type Endpoint struct {
+	Address *string `json:"address,omitempty"`
+}
+
+// Describes a Redshift-managed VPC endpoint.
+type EndpointAccess struct {
+	Address           *string `json:"address,omitempty"`
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+	EndpointName      *string `json:"endpointName,omitempty"`
+	EndpointStatus    *string `json:"endpointStatus,omitempty"`
+	ResourceOwner     *string `json:"resourceOwner,omitempty"`
+	SubnetGroupName   *string `json:"subnetGroupName,omitempty"`
+}
+
+// Describes an endpoint authorization for authorizing Redshift-managed VPC
+// endpoint access to a cluster across Amazon Web Services accounts.
+type EndpointAuthorization struct {
+	AllowedAllVPCs    *bool   `json:"allowedAllVPCs,omitempty"`
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+	ClusterStatus     *string `json:"clusterStatus,omitempty"`
+	Grantee           *string `json:"grantee,omitempty"`
+	Grantor           *string `json:"grantor,omitempty"`
+}
+
+// Describes an event.
+type Event struct {
+	EventID          *string `json:"eventID,omitempty"`
+	Message          *string `json:"message,omitempty"`
+	Severity         *string `json:"severity,omitempty"`
+	SourceIdentifier *string `json:"sourceIdentifier,omitempty"`
+}
+
+// Describes event categories.
+type EventCategoriesMap struct {
+	SourceType *string `json:"sourceType,omitempty"`
+}
+
+// Describes event information.
+type EventInfoMap struct {
+	EventDescription *string `json:"eventDescription,omitempty"`
+	EventID          *string `json:"eventID,omitempty"`
+	Severity         *string `json:"severity,omitempty"`
+}
+
+// Describes event subscriptions.
+type EventSubscription struct {
+	CustSubscriptionID *string `json:"custSubscriptionID,omitempty"`
+	CustomerAWSID      *string `json:"customerAWSID,omitempty"`
+	Enabled            *bool   `json:"enabled,omitempty"`
+	Severity           *string `json:"severity,omitempty"`
+	SNSTopicARN        *string `json:"snsTopicARN,omitempty"`
+	SourceType         *string `json:"sourceType,omitempty"`
+	Status             *string `json:"status,omitempty"`
+	Tags               []*Tag  `json:"tags,omitempty"`
+}
+
+// Returns information about an HSM client certificate. The certificate is stored
+// in a secure Hardware Storage Module (HSM), and used by the Amazon Redshift
+// cluster to encrypt data files.
+type HsmClientCertificate struct {
+	HsmClientCertificateIdentifier *string `json:"hsmClientCertificateIdentifier,omitempty"`
+	HsmClientCertificatePublicKey  *string `json:"hsmClientCertificatePublicKey,omitempty"`
+	Tags                           []*Tag  `json:"tags,omitempty"`
+}
+
+// Returns information about an HSM configuration, which is an object that describes
+// to Amazon Redshift clusters the information they require to connect to an
+// HSM where they can store database encryption keys.
+type HsmConfiguration struct {
+	Description                *string `json:"description,omitempty"`
+	HsmConfigurationIdentifier *string `json:"hsmConfigurationIdentifier,omitempty"`
+	HsmIPAddress               *string `json:"hsmIPAddress,omitempty"`
+	HsmPartitionName           *string `json:"hsmPartitionName,omitempty"`
+	Tags                       []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes the status of changes to HSM settings.
+type HsmStatus struct {
+	HsmClientCertificateIdentifier *string `json:"hsmClientCertificateIdentifier,omitempty"`
+	HsmConfigurationIdentifier     *string `json:"hsmConfigurationIdentifier,omitempty"`
+	Status                         *string `json:"status,omitempty"`
+}
+
+// Describes an IP range used in a security group.
+type IPRange struct {
+	CIDRIP *string `json:"cidrIP,omitempty"`
+	Status *string `json:"status,omitempty"`
+	Tags   []*Tag  `json:"tags,omitempty"`
+}
+
+// The content of an inbound integration.
+type InboundIntegration struct {
+	SourceARN *string `json:"sourceARN,omitempty"`
+}
+
+type Integration struct {
+	KMSKeyID *string `json:"kmsKeyID,omitempty"`
+	Tags     []*Tag  `json:"tags,omitempty"`
+}
+
+// The error of an inbound integration.
+type IntegrationError struct {
+	ErrorCode    *string `json:"errorCode,omitempty"`
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+}
+
+// Defines a maintenance track that determines which Amazon Redshift version
+// to apply during a maintenance window. If the value for MaintenanceTrack is
+// current, the cluster is updated to the most recently certified maintenance
+// release. If the value is trailing, the cluster is updated to the previously
+// certified maintenance release.
+type MaintenanceTrack struct {
+	DatabaseVersion      *string `json:"databaseVersion,omitempty"`
+	MaintenanceTrackName *string `json:"maintenanceTrackName,omitempty"`
+}
+
+// Describes a network interface.
+type NetworkInterface struct {
+	AvailabilityZone   *string `json:"availabilityZone,omitempty"`
+	IPv6Address        *string `json:"ipv6Address,omitempty"`
+	NetworkInterfaceID *string `json:"networkInterfaceID,omitempty"`
+	PrivateIPAddress   *string `json:"privateIPAddress,omitempty"`
+	SubnetID           *string `json:"subnetID,omitempty"`
+}
+
+// A list of node configurations.
+type NodeConfigurationOption struct {
+	NodeType *string `json:"nodeType,omitempty"`
+}
+
+// Describes an orderable cluster option.
+type OrderableClusterOption struct {
+	ClusterType    *string `json:"clusterType,omitempty"`
+	ClusterVersion *string `json:"clusterVersion,omitempty"`
+	NodeType       *string `json:"nodeType,omitempty"`
+}
+
+// Describes a parameter in a cluster parameter group.
+type Parameter struct {
+	AllowedValues        *string `json:"allowedValues,omitempty"`
+	ApplyType            *string `json:"applyType,omitempty"`
+	DataType             *string `json:"dataType,omitempty"`
+	Description          *string `json:"description,omitempty"`
+	IsModifiable         *bool   `json:"isModifiable,omitempty"`
+	MinimumEngineVersion *string `json:"minimumEngineVersion,omitempty"`
+	ParameterName        *string `json:"parameterName,omitempty"`
+	ParameterValue       *string `json:"parameterValue,omitempty"`
+	Source               *string `json:"source,omitempty"`
+}
+
+// Describes a pause cluster operation. For example, a scheduled action to run
+// the PauseCluster API operation.
+type PauseClusterMessage struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+}
+
+// Describes cluster attributes that are in a pending state. A change to one
+// or more the attributes was requested and is in progress or will be applied.
+type PendingModifiedValues struct {
+	AutomatedSnapshotRetentionPeriod *int64  `json:"automatedSnapshotRetentionPeriod,omitempty"`
+	ClusterIdentifier                *string `json:"clusterIdentifier,omitempty"`
+	ClusterType                      *string `json:"clusterType,omitempty"`
+	ClusterVersion                   *string `json:"clusterVersion,omitempty"`
+	EncryptionType                   *string `json:"encryptionType,omitempty"`
+	MaintenanceTrackName             *string `json:"maintenanceTrackName,omitempty"`
+	NodeType                         *string `json:"nodeType,omitempty"`
+	NumberOfNodes                    *int64  `json:"numberOfNodes,omitempty"`
+}
+
+// The identifier for a provisioned cluster.
+type ProvisionedIdentifier struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+}
+
+// Contains configuration and status information for an Amazon Redshift Query
+// Editor (QEV2) application that is registered with IAM Identity Center.
+type Qev2IDCApplication struct {
+	IDCInstanceARN           *string `json:"idcInstanceARN,omitempty"`
+	IDCManagedApplicationARN *string `json:"idcManagedApplicationARN,omitempty"`
+	IDCOnboardStatus         *string `json:"idcOnboardStatus,omitempty"`
+	Qev2IDCApplicationARN    *string `json:"qev2IDCApplicationARN,omitempty"`
+	Tags                     []*Tag  `json:"tags,omitempty"`
+}
+
+// An Amazon Redshift Advisor recommended action on the Amazon Redshift cluster.
+type Recommendation struct {
+	ClusterIdentifier  *string `json:"clusterIdentifier,omitempty"`
+	Description        *string `json:"description,omitempty"`
+	ID                 *string `json:"id,omitempty"`
+	NamespaceARN       *string `json:"namespaceARN,omitempty"`
+	Observation        *string `json:"observation,omitempty"`
+	RecommendationText *string `json:"recommendationText,omitempty"`
+	RecommendationType *string `json:"recommendationType,omitempty"`
+	Title              *string `json:"title,omitempty"`
+}
+
+// The recommended action from the Amazon Redshift Advisor recommendation.
+type RecommendedAction struct {
+	Command  *string `json:"command,omitempty"`
+	Database *string `json:"database,omitempty"`
+	Text     *string `json:"text,omitempty"`
+}
+
+// Describes a recurring charge.
+type RecurringCharge struct {
+	RecurringChargeFrequency *string `json:"recurringChargeFrequency,omitempty"`
+}
+
+// Contains properties for the Redshift IDC application.
+type RedshiftIDCApplication struct {
+	IAMRoleARN                *string   `json:"iamRoleARN,omitempty"`
+	IDCInstanceARN            *string   `json:"idcInstanceARN,omitempty"`
+	IDCManagedApplicationARN  *string   `json:"idcManagedApplicationARN,omitempty"`
+	IDCOnboardStatus          *string   `json:"idcOnboardStatus,omitempty"`
+	RedshiftIDCApplicationARN *string   `json:"redshiftIDCApplicationARN,omitempty"`
+	SsoTagKeys                []*string `json:"ssoTagKeys,omitempty"`
+	Tags                      []*Tag    `json:"tags,omitempty"`
+}
+
+// A link to an Amazon Redshift Advisor reference for more information about
+// a recommendation.
+type ReferenceLink struct {
+	Link *string `json:"link,omitempty"`
+	Text *string `json:"text,omitempty"`
+}
+
+// Describes a reserved node. You can call the DescribeReservedNodeOfferings
+// API to obtain the available reserved node offerings.
+type ReservedNode struct {
+	CurrencyCode           *string `json:"currencyCode,omitempty"`
+	NodeType               *string `json:"nodeType,omitempty"`
+	OfferingType           *string `json:"offeringType,omitempty"`
+	ReservedNodeID         *string `json:"reservedNodeID,omitempty"`
+	ReservedNodeOfferingID *string `json:"reservedNodeOfferingID,omitempty"`
+	State                  *string `json:"state,omitempty"`
+}
+
+// Reserved-node status details, such as the source reserved-node identifier,
+// the target reserved-node identifier, the node type, the node count, and other
+// details.
+type ReservedNodeExchangeStatus struct {
+	ReservedNodeExchangeRequestID *string `json:"reservedNodeExchangeRequestID,omitempty"`
+	SourceReservedNodeID          *string `json:"sourceReservedNodeID,omitempty"`
+	SourceReservedNodeType        *string `json:"sourceReservedNodeType,omitempty"`
+	TargetReservedNodeOfferingID  *string `json:"targetReservedNodeOfferingID,omitempty"`
+	TargetReservedNodeType        *string `json:"targetReservedNodeType,omitempty"`
+}
+
+// Describes a reserved node offering.
+type ReservedNodeOffering struct {
+	CurrencyCode           *string `json:"currencyCode,omitempty"`
+	NodeType               *string `json:"nodeType,omitempty"`
+	OfferingType           *string `json:"offeringType,omitempty"`
+	ReservedNodeOfferingID *string `json:"reservedNodeOfferingID,omitempty"`
+}
+
+// Describes a resize cluster operation. For example, a scheduled action to
+// run the ResizeCluster API operation.
+type ResizeClusterMessage struct {
+	ClusterIdentifier            *string `json:"clusterIdentifier,omitempty"`
+	ClusterType                  *string `json:"clusterType,omitempty"`
+	NodeType                     *string `json:"nodeType,omitempty"`
+	NumberOfNodes                *int64  `json:"numberOfNodes,omitempty"`
+	ReservedNodeID               *string `json:"reservedNodeID,omitempty"`
+	TargetReservedNodeOfferingID *string `json:"targetReservedNodeOfferingID,omitempty"`
+}
+
+// Describes a resize operation.
+type ResizeInfo struct {
+	AllowCancelResize *bool   `json:"allowCancelResize,omitempty"`
+	ResizeType        *string `json:"resizeType,omitempty"`
+}
+
+// The policy that is attached to a resource.
+type ResourcePolicy struct {
+	Policy      *string `json:"policy,omitempty"`
+	ResourceARN *string `json:"resourceARN,omitempty"`
+}
+
+// Describes the status of a cluster restore action. Returns null if the cluster
+// was not created by restoring a snapshot.
+type RestoreStatus struct {
+	Status *string `json:"status,omitempty"`
+}
+
+// Describes a resume cluster operation. For example, a scheduled action to
+// run the ResumeCluster API operation.
+type ResumeClusterMessage struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+}
+
+// Describes a RevisionTarget.
+type RevisionTarget struct {
+	DatabaseRevision *string `json:"databaseRevision,omitempty"`
+	Description      *string `json:"description,omitempty"`
+}
+
+// Describes the status of system table publishing to S3 Tables for a cluster.
+type S3TablePublishStatus struct {
+	S3TableGranularity *string `json:"s3TableGranularity,omitempty"`
+	S3TableNamespace   *string `json:"s3TableNamespace,omitempty"`
+}
+
+// Describes a scheduled action. You can use a scheduled action to trigger some
+// Amazon Redshift API operations on a schedule. For information about which
+// API operations can be scheduled, see ScheduledActionType.
+type ScheduledAction struct {
+	IAMRole                    *string `json:"iamRole,omitempty"`
+	Schedule                   *string `json:"schedule,omitempty"`
+	ScheduledActionDescription *string `json:"scheduledActionDescription,omitempty"`
+	ScheduledActionName        *string `json:"scheduledActionName,omitempty"`
+}
+
+// The AvailabilityZone and ClusterNodes information of the secondary compute
+// unit.
+type SecondaryClusterInfo struct {
+	AvailabilityZone *string `json:"availabilityZone,omitempty"`
+}
+
+// The identifier for a serverless namespace.
+type ServerlessIdentifier struct {
+	NamespaceIdentifier *string `json:"namespaceIdentifier,omitempty"`
+	WorkgroupIdentifier *string `json:"workgroupIdentifier,omitempty"`
+}
+
+// Describes a snapshot.
+type Snapshot struct {
+	AvailabilityZone              *string `json:"availabilityZone,omitempty"`
+	ClusterIdentifier             *string `json:"clusterIdentifier,omitempty"`
+	ClusterVersion                *string `json:"clusterVersion,omitempty"`
+	DBName                        *string `json:"dbName,omitempty"`
+	Encrypted                     *bool   `json:"encrypted,omitempty"`
+	EncryptedWithHSM              *bool   `json:"encryptedWithHSM,omitempty"`
+	EngineFullVersion             *string `json:"engineFullVersion,omitempty"`
+	EnhancedVPCRouting            *bool   `json:"enhancedVPCRouting,omitempty"`
+	KMSKeyID                      *string `json:"kmsKeyID,omitempty"`
+	MaintenanceTrackName          *string `json:"maintenanceTrackName,omitempty"`
+	ManualSnapshotRemainingDays   *int64  `json:"manualSnapshotRemainingDays,omitempty"`
+	ManualSnapshotRetentionPeriod *int64  `json:"manualSnapshotRetentionPeriod,omitempty"`
+	MasterPasswordSecretARN       *string `json:"masterPasswordSecretARN,omitempty"`
+	MasterPasswordSecretKMSKeyID  *string `json:"masterPasswordSecretKMSKeyID,omitempty"`
+	MasterUsername                *string `json:"masterUsername,omitempty"`
+	NodeType                      *string `json:"nodeType,omitempty"`
+	OwnerAccount                  *string `json:"ownerAccount,omitempty"`
+	SnapshotARN                   *string `json:"snapshotARN,omitempty"`
+	SnapshotIdentifier            *string `json:"snapshotIdentifier,omitempty"`
+	SnapshotType                  *string `json:"snapshotType,omitempty"`
+	SourceRegion                  *string `json:"sourceRegion,omitempty"`
+	Status                        *string `json:"status,omitempty"`
+	Tags                          []*Tag  `json:"tags,omitempty"`
+	VPCID                         *string `json:"vpcID,omitempty"`
+}
+
+// The snapshot copy grant that grants Amazon Redshift permission to encrypt
+// copied snapshots with the specified encrypted symmetric key from Amazon Web
+// Services KMS in the destination region.
+//
+// For more information about managing snapshot copy grants, go to Amazon Redshift
+// Database Encryption (https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html)
+// in the Amazon Redshift Cluster Management Guide.
+type SnapshotCopyGrant struct {
+	KMSKeyID              *string `json:"kmsKeyID,omitempty"`
+	SnapshotCopyGrantName *string `json:"snapshotCopyGrantName,omitempty"`
+	Tags                  []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes the errors returned by a snapshot.
+type SnapshotErrorMessage struct {
+	FailureCode               *string `json:"failureCode,omitempty"`
+	FailureReason             *string `json:"failureReason,omitempty"`
+	SnapshotClusterIdentifier *string `json:"snapshotClusterIdentifier,omitempty"`
+	SnapshotIdentifier        *string `json:"snapshotIdentifier,omitempty"`
+}
+
+// Describes a snapshot schedule. You can set a regular interval for creating
+// snapshots of a cluster. You can also schedule snapshots for specific dates.
+type SnapshotSchedule struct {
+	AssociatedClusterCount *int64  `json:"associatedClusterCount,omitempty"`
+	ScheduleDescription    *string `json:"scheduleDescription,omitempty"`
+	ScheduleIdentifier     *string `json:"scheduleIdentifier,omitempty"`
+	Tags                   []*Tag  `json:"tags,omitempty"`
+}
+
+// Describes a subnet.
+type Subnet struct {
+	SubnetIdentifier *string `json:"subnetIdentifier,omitempty"`
+	SubnetStatus     *string `json:"subnetStatus,omitempty"`
+}
+
+// Describes the operations that are allowed on a maintenance track.
+type SupportedOperation struct {
+	OperationName *string `json:"operationName,omitempty"`
+}
+
+// A list of supported platforms for orderable clusters.
+type SupportedPlatform struct {
+	Name *string `json:"name,omitempty"`
+}
+
+// Describes the status of a RestoreTableFromClusterSnapshot operation.
+type TableRestoreStatus struct {
+	ClusterIdentifier     *string `json:"clusterIdentifier,omitempty"`
+	Message               *string `json:"message,omitempty"`
+	NewTableName          *string `json:"newTableName,omitempty"`
+	SnapshotIdentifier    *string `json:"snapshotIdentifier,omitempty"`
+	SourceDatabaseName    *string `json:"sourceDatabaseName,omitempty"`
+	SourceSchemaName      *string `json:"sourceSchemaName,omitempty"`
+	SourceTableName       *string `json:"sourceTableName,omitempty"`
+	TableRestoreRequestID *string `json:"tableRestoreRequestID,omitempty"`
+	TargetDatabaseName    *string `json:"targetDatabaseName,omitempty"`
+	TargetSchemaName      *string `json:"targetSchemaName,omitempty"`
+}
+
+// A tag consisting of a name/value pair for a resource.
+type Tag struct {
+	Key   *string `json:"key,omitempty"`
+	Value *string `json:"value,omitempty"`
+}
+
+// A tag and its associated resource.
+type TaggedResource struct {
+	ResourceName *string `json:"resourceName,omitempty"`
+	ResourceType *string `json:"resourceType,omitempty"`
+	// A tag consisting of a name/value pair for a resource.
+	Tag *Tag `json:"tag,omitempty"`
+}
+
+// A maintenance track that you can switch the current track to.
+type UpdateTarget struct {
+	DatabaseVersion      *string `json:"databaseVersion,omitempty"`
+	MaintenanceTrackName *string `json:"maintenanceTrackName,omitempty"`
+}
+
+// Describes a usage limit object for a cluster.
+type UsageLimit struct {
+	ClusterIdentifier *string `json:"clusterIdentifier,omitempty"`
+	Tags              []*Tag  `json:"tags,omitempty"`
+	UsageLimitID      *string `json:"usageLimitID,omitempty"`
+}
+
+// The connection endpoint for connecting to an Amazon Redshift cluster through
+// the proxy.
+type VPCEndpoint struct {
+	VPCEndpointID *string `json:"vpcEndpointID,omitempty"`
+	VPCID         *string `json:"vpcID,omitempty"`
+}
+
+// Describes the members of a VPC security group.
+type VPCSecurityGroupMembership struct {
+	Status             *string `json:"status,omitempty"`
+	VPCSecurityGroupID *string `json:"vpcSecurityGroupID,omitempty"`
+}

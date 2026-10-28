@@ -1,0 +1,16 @@
+apiVersion: redshift.services.k8s.aws/v1alpha1
+kind: ClusterParameterGroup
+metadata:
+  name: $CLUSTER_PARAMETER_GROUP_NAME
+spec:
+  name: $CLUSTER_PARAMETER_GROUP_NAME
+  family: $FAMILY
+  description: $DESCRIPTION
+  parameterOverrides:
+    statement_timeout: "$PARAM_STATEMENT_TIMEOUT"
+    enable_user_activity_logging: "$PARAM_ENABLE_USER_ACTIVITY_LOGGING"
+  tags:
+  - key: environment
+    value: test
+  - key: team
+    value: data
