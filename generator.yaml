@@ -31,6 +31,11 @@ resources:
       ParameterOverrides:
         custom_field:
           map_of: String
+      ParameterOverrideStatuses:
+        from:
+          operation: DescribeClusterParameters
+          path: Parameters
+        is_read_only: true
     renames:
       operations:
         CreateClusterParameterGroup:
@@ -57,10 +62,15 @@ resources:
         - ClusterParameterGroupQuotaExceeded
         - InvalidTagFault
         - TagLimitExceededFault
+        - InvalidParameterValue
     update_operation:
       custom_method_name: customUpdateClusterParameterGroup
     hooks:
+      sdk_create_pre_build_request:
+        template_path: hooks/cluster_parameter_group/sdk_create_pre_build_request.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/cluster_parameter_group/sdk_create_post_set_output.go.tpl
+      sdk_read_many_pre_build_request:
+        template_path: hooks/cluster_parameter_group/sdk_read_many_pre_build_request.go.tpl
       sdk_read_many_post_set_output:
         template_path: hooks/cluster_parameter_group/sdk_read_many_post_set_output.go.tpl

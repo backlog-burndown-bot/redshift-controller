@@ -83,6 +83,21 @@ spec:
               parameterOverrides:
                 additionalProperties:
                   type: string
+                description: |-
+                  Parameter names mapped to the values to set on this parameter group.
+                  Parameters not listed keep, or are reset to, their engine-default
+                  values. Static parameters take effect only after the associated
+                  clusters reboot.
+
+                  When adopting an existing group with
+                  `services.k8s.aws/adoption-policy: adopt-or-create`, this map is the
+                  COMPLETE set of overrides: any parameter the group currently
+                  overrides that is not listed here is reset to its engine default. To
+                  take over a group that is in use without changing it, use
+                  `services.k8s.aws/adoption-policy: adopt` together with
+                  `services.k8s.aws/adoption-fields: '{"name": "<group>"}'` (the
+                  controller copies the group's current overrides into spec), or first
+                  copy the current values into this map.
                 type: object
               tags:
                 description: A list of tag instances.
@@ -170,6 +185,34 @@ spec:
                   required:
                   - status
                   - type
+                  type: object
+                type: array
+              parameterOverrideStatuses:
+                description: |-
+                  ParameterOverrideStatuses lists the parameters this group overrides
+                  or the spec declares, as reported by AWS. This field is managed by
+                  the controller and must not be edited by users.
+                items:
+                  description: Describes a parameter in a cluster parameter group.
+                  properties:
+                    allowedValues:
+                      type: string
+                    applyType:
+                      type: string
+                    dataType:
+                      type: string
+                    description:
+                      type: string
+                    isModifiable:
+                      type: boolean
+                    minimumEngineVersion:
+                      type: string
+                    parameterName:
+                      type: string
+                    parameterValue:
+                      type: string
+                    source:
+                      type: string
                   type: object
                 type: array
             type: object

@@ -17,22 +17,53 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
+	"time"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
+	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/redshift"
 	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+
+	svcapitypes "github.com/aws-controllers-k8s/redshift-controller/apis/v1alpha1"
 )
 
 // maxParametersPerCall is the most parameters ModifyClusterParameterGroup and
 // ResetClusterParameterGroup accept in a single request.
 const maxParametersPerCall = 20
 
-// customUpdateClusterParameterGroup replaces the generated sdkUpdate, which
-// cannot compile because ModifyClusterParameterGroup's output is on the
-// code-generator's shame list. Only Tags and ParameterOverrides are mutable.
+var (
+	errParametersModified = fmt.Errorf("parameter overrides modified, requeuing to refresh status")
+	// requeueWaitAfterParameterSync re-reads the group after a parameter change
+	// so Status.ParameterOverrideStatuses reflects it (rds-controller#298).
+	requeueWaitAfterParameterSync = ackrequeue.NeededAfter(errParametersModified, 5*time.Second)
+)
+
+// hasUpperCase reports whether name contains upper-case letters.
+func hasUpperCase(name *string) bool {
+	return name != nil && strings.ToLower(*name) != *name
+}
+
+// validateParameterGroupName rejects an upper-case name before create: Redshift
+// stores group names in lower case, so such a CR would never sync.
+func validateParameterGroupName(name *string) error {
+	if !hasUpperCase(name) {
+		return nil
+	}
+	return ackerr.NewTerminalError(fmt.Errorf(
+		"spec.name %q contains upper-case letters; Redshift stores parameter group names in lower case, so the resource would never sync. spec.name is immutable; delete and recreate the resource with %q",
+		*name, strings.ToLower(*name)))
+}
+
+// customUpdateClusterParameterGroup replaces the generated single Modify call
+// with parameter-sync semantics, as rds-controller DBParameterGroup does
+// (community#869): parameters removed from the spec are reset with
+// ResetClusterParameterGroup, changes are sent in batches of at most 20, and
+// Modify is skipped when no parameter changed. Only Tags and
+// ParameterOverrides are mutable.
 func (rm *resourceManager) customUpdateClusterParameterGroup(
 	ctx context.Context,
 	desired *resource,
@@ -50,14 +81,14 @@ func (rm *resourceManager) customUpdateClusterParameterGroup(
 			return nil, err
 		}
 	}
+	updated = &resource{desired.ko.DeepCopy()}
+	updated.SetStatus(latest)
 	if delta.DifferentAt("Spec.ParameterOverrides") {
 		if err = rm.syncParameters(ctx, desired, latest); err != nil {
 			return nil, err
 		}
+		return updated, requeueWaitAfterParameterSync
 	}
-
-	updated = &resource{desired.ko.DeepCopy()}
-	updated.SetStatus(latest)
 	return updated, nil
 }
 
@@ -133,44 +164,72 @@ func (rm *resourceManager) syncTags(
 	return nil
 }
 
-// getParameterOverrides reads the group's parameters and returns those the
-// user changed (Source "user") plus any the CR declares. Declared names are
-// kept regardless of Source so a declared value equal to the engine default
-// still compares equal and the delta closes.
+// getParameterOverrides reads every page of the group's parameters and
+// returns the overrides and their statuses, as filtered by filterParameters.
 func (rm *resourceManager) getParameterOverrides(
 	ctx context.Context,
 	groupName *string,
 	declared map[string]*string,
-) (map[string]*string, error) {
-	overrides := map[string]*string{}
+) (overrides map[string]*string, statuses []*svcapitypes.Parameter, err error) {
+	var params []svcsdktypes.Parameter
 	input := &svcsdk.DescribeClusterParametersInput{ParameterGroupName: groupName}
 	for {
 		resp, err := rm.sdkapi.DescribeClusterParameters(ctx, input)
 		rm.metrics.RecordAPICall("READ_MANY", "DescribeClusterParameters", err)
 		if err != nil {
 			if awsErr, ok := ackerr.AWSError(err); ok && awsErr.ErrorCode() == "ClusterParameterGroupNotFound" {
-				return nil, ackerr.NotFound
+				return nil, nil, ackerr.NotFound
 			}
-			return nil, err
+			return nil, nil, err
 		}
-		for _, p := range resp.Parameters {
-			if p.ParameterName == nil || p.ParameterValue == nil {
-				continue
-			}
-			_, isDeclared := declared[*p.ParameterName]
-			if isDeclared || aws.ToString(p.Source) == "user" {
-				overrides[*p.ParameterName] = p.ParameterValue
-			}
-		}
+		params = append(params, resp.Parameters...)
 		if resp.Marker == nil || *resp.Marker == "" {
 			break
 		}
 		input.Marker = resp.Marker
 	}
+	overrides, statuses = filterParameters(params, declared)
+	return overrides, statuses, nil
+}
+
+// filterParameters keeps the parameters the user changed (Source "user") plus
+// any the CR declares, and returns them as overrides and as statuses sorted by
+// name. Declared names are kept regardless of Source so a declared value equal
+// to the engine default still compares equal and the delta closes.
+func filterParameters(
+	params []svcsdktypes.Parameter,
+	declared map[string]*string,
+) (map[string]*string, []*svcapitypes.Parameter) {
+	overrides := map[string]*string{}
+	var statuses []*svcapitypes.Parameter
+	for _, p := range params {
+		if p.ParameterName == nil || p.ParameterValue == nil {
+			continue
+		}
+		_, isDeclared := declared[*p.ParameterName]
+		if !isDeclared && aws.ToString(p.Source) != "user" {
+			continue
+		}
+		overrides[*p.ParameterName] = p.ParameterValue
+		var applyType *string
+		if p.ApplyType != "" {
+			applyType = aws.String(string(p.ApplyType))
+		}
+		statuses = append(statuses, &svcapitypes.Parameter{
+			ParameterName:  p.ParameterName,
+			ParameterValue: p.ParameterValue,
+			ApplyType:      applyType,
+			IsModifiable:   p.IsModifiable,
+			Source:         p.Source,
+		})
+	}
 	if len(overrides) == 0 {
 		return nil, nil
 	}
-	return overrides, nil
+	sort.Slice(statuses, func(i, j int) bool {
+		return *statuses[i].ParameterName < *statuses[j].ParameterName
+	})
+	return overrides, statuses
 }
 
 // syncParameters resets parameters dropped from the spec, then modifies the

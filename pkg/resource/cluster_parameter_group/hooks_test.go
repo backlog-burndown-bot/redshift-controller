@@ -14,11 +14,20 @@
 package cluster_parameter_group
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
+	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
+	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+
+	svcapitypes "github.com/aws-controllers-k8s/redshift-controller/apis/v1alpha1"
 )
 
 func TestDiffParameters(t *testing.T) {
@@ -155,5 +164,117 @@ func TestNewModifyParametersInput(t *testing.T) {
 	}
 	if want := map[string]string{"a": "1", "c": "3"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Parameters = %v, want %v", got, want)
+	}
+}
+
+func TestHasUpperCase(t *testing.T) {
+	for _, tc := range []struct {
+		name *string
+		want bool
+	}{
+		{nil, false},
+		{aws.String(""), false},
+		{aws.String("abc-1"), false},
+		{aws.String("Abc"), true},
+		{aws.String("ABC"), true},
+		{aws.String("abc-D"), true},
+	} {
+		if got := hasUpperCase(tc.name); got != tc.want {
+			t.Errorf("hasUpperCase(%q) = %v, want %v", aws.ToString(tc.name), got, tc.want)
+		}
+	}
+}
+
+func TestValidateParameterGroupName(t *testing.T) {
+	for _, name := range []*string{nil, aws.String("abc-1")} {
+		if err := validateParameterGroupName(name); err != nil {
+			t.Errorf("validateParameterGroupName(%q) = %v, want nil", aws.ToString(name), err)
+		}
+	}
+	err := validateParameterGroupName(aws.String("My-Group"))
+	var terminal *ackerr.TerminalError
+	if !errors.As(err, &terminal) {
+		t.Fatalf("got %v, want a *ackerr.TerminalError", err)
+	}
+	for _, want := range []string{"spec.name is immutable", `"my-group"`} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not contain %q", err.Error(), want)
+		}
+	}
+}
+
+// TestUpperCaseNameGuards exercises the generated wiring of both hooks: each
+// must return before any AWS call, so a zero-value resourceManager suffices.
+func TestUpperCaseNameGuards(t *testing.T) {
+	res := func(name string) *resource {
+		return &resource{&svcapitypes.ClusterParameterGroup{
+			Spec: svcapitypes.ClusterParameterGroupSpec{Name: aws.String(name)},
+		}}
+	}
+	rm := &resourceManager{}
+	ctx := context.Background()
+
+	if _, err := rm.sdkFind(ctx, res("Foo")); err != ackerr.NotFound {
+		t.Errorf("sdkFind = %v, want ackerr.NotFound", err)
+	}
+	_, err := rm.sdkCreate(ctx, res("Foo"))
+	var terminal *ackerr.TerminalError
+	if !errors.As(err, &terminal) {
+		t.Errorf("sdkCreate = %v, want a *ackerr.TerminalError", err)
+	}
+}
+
+func TestFilterParameters(t *testing.T) {
+	params := []svcsdktypes.Parameter{
+		{ParameterName: aws.String("z_user"), ParameterValue: aws.String("1"), Source: aws.String("user"),
+			ApplyType: svcsdktypes.ParameterApplyTypeDynamic, IsModifiable: aws.Bool(true)},
+		{ParameterName: aws.String("a_declared_default"), ParameterValue: aws.String("2"), Source: aws.String("engine-default"),
+			ApplyType: svcsdktypes.ParameterApplyTypeStatic, IsModifiable: aws.Bool(true)},
+		{ParameterName: aws.String("m_undeclared_default"), ParameterValue: aws.String("3"), Source: aws.String("engine-default")},
+		{ParameterName: aws.String("n_nil_value"), Source: aws.String("user")},
+		{ParameterName: aws.String("b_no_apply_type"), ParameterValue: aws.String("4"), Source: aws.String("user")},
+	}
+	declared := map[string]*string{"a_declared_default": aws.String("2"), "n_nil_value": aws.String("x")}
+
+	overrides, statuses := filterParameters(params, declared)
+	wantOverrides := map[string]*string{
+		"z_user":             aws.String("1"),
+		"a_declared_default": aws.String("2"),
+		"b_no_apply_type":    aws.String("4"),
+	}
+	if !reflect.DeepEqual(overrides, wantOverrides) {
+		t.Errorf("overrides = %v, want %v", overrides, wantOverrides)
+	}
+	wantStatuses := []*svcapitypes.Parameter{
+		{ParameterName: aws.String("a_declared_default"), ParameterValue: aws.String("2"), Source: aws.String("engine-default"),
+			ApplyType: aws.String("static"), IsModifiable: aws.Bool(true)},
+		{ParameterName: aws.String("b_no_apply_type"), ParameterValue: aws.String("4"), Source: aws.String("user")},
+		{ParameterName: aws.String("z_user"), ParameterValue: aws.String("1"), Source: aws.String("user"),
+			ApplyType: aws.String("dynamic"), IsModifiable: aws.Bool(true)},
+	}
+	if !reflect.DeepEqual(statuses, wantStatuses) {
+		t.Errorf("statuses = %+v, want %+v", statuses, wantStatuses)
+	}
+
+	overrides, statuses = filterParameters(params[2:3], nil)
+	if overrides != nil || statuses != nil {
+		t.Errorf("nothing kept: got %v, %v, want nil, nil", overrides, statuses)
+	}
+}
+
+func TestRequeueAfterParameterSync(t *testing.T) {
+	var requeue *ackrequeue.RequeueNeededAfter
+	if !errors.As(requeueWaitAfterParameterSync, &requeue) {
+		t.Fatalf("not a *ackrequeue.RequeueNeededAfter")
+	}
+	if requeue.Duration() != 5*time.Second {
+		t.Errorf("Duration() = %v, want 5s", requeue.Duration())
+	}
+	if _, ok := ackerr.AWSError(requeueWaitAfterParameterSync); ok {
+		t.Errorf("classified as an AWS error")
+	}
+	var terminal *ackerr.TerminalError
+	if errors.As(requeueWaitAfterParameterSync, &terminal) {
+		t.Errorf("classified as terminal")
 	}
 }

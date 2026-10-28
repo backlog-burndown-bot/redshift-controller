@@ -63,6 +63,13 @@ func (rm *resourceManager) sdkFind(
 	defer func() {
 		exit(err)
 	}()
+	// Redshift stores group names in lower case, so an upper-case spec.name
+	// can never own a group; report NotFound rather than risk binding to the
+	// lower-case group of the same name.
+	if hasUpperCase(r.ko.Spec.Name) {
+		return nil, ackerr.NotFound
+	}
+
 	// If any required fields in the input shape are missing, AWS resource is
 	// not created yet. Return NotFound here to indicate to callers that the
 	// resource isn't yet created.
@@ -132,11 +139,12 @@ func (rm *resourceManager) sdkFind(
 	rm.setStatusDefaults(ko)
 	// DescribeClusterParameterGroups does not return parameter values, so read
 	// them with DescribeClusterParameters.
-	overrides, err := rm.getParameterOverrides(ctx, ko.Spec.Name, r.ko.Spec.ParameterOverrides)
+	overrides, statuses, err := rm.getParameterOverrides(ctx, ko.Spec.Name, r.ko.Spec.ParameterOverrides)
 	if err != nil {
 		return nil, err
 	}
 	ko.Spec.ParameterOverrides = overrides
+	ko.Status.ParameterOverrideStatuses = statuses
 
 	return &resource{ko}, nil
 }
@@ -177,6 +185,10 @@ func (rm *resourceManager) sdkCreate(
 	defer func() {
 		exit(err)
 	}()
+	if err = validateParameterGroupName(desired.ko.Spec.Name); err != nil {
+		return nil, err
+	}
+
 	input, err := rm.newCreateRequestPayload(ctx, desired)
 	if err != nil {
 		return nil, err
@@ -444,7 +456,8 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	case "ClusterParameterGroupAlreadyExists",
 		"ClusterParameterGroupQuotaExceeded",
 		"InvalidTagFault",
-		"TagLimitExceededFault":
+		"TagLimitExceededFault",
+		"InvalidParameterValue":
 		return true
 	default:
 		return false

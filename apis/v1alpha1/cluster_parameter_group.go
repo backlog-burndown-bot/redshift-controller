@@ -55,7 +55,21 @@ type ClusterParameterGroupSpec struct {
 	// This value is stored as a lower-case string.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	// +kubebuilder:validation:Required
-	Name               *string            `json:"name"`
+	Name *string `json:"name"`
+	// Parameter names mapped to the values to set on this parameter group.
+	// Parameters not listed keep, or are reset to, their engine-default
+	// values. Static parameters take effect only after the associated
+	// clusters reboot.
+	//
+	// When adopting an existing group with
+	// `services.k8s.aws/adoption-policy: adopt-or-create`, this map is the
+	// COMPLETE set of overrides: any parameter the group currently
+	// overrides that is not listed here is reset to its engine default. To
+	// take over a group that is in use without changing it, use
+	// `services.k8s.aws/adoption-policy: adopt` together with
+	// `services.k8s.aws/adoption-fields: '{"name": "<group>"}'` (the
+	// controller copies the group's current overrides into spec), or first
+	// copy the current values into this map.
 	ParameterOverrides map[string]*string `json:"parameterOverrides,omitempty"`
 	// A list of tag instances.
 	Tags []*Tag `json:"tags,omitempty"`
@@ -74,6 +88,11 @@ type ClusterParameterGroupStatus struct {
 	// resource
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
+	// ParameterOverrideStatuses lists the parameters this group overrides
+	// or the spec declares, as reported by AWS. This field is managed by
+	// the controller and must not be edited by users.
+	// +kubebuilder:validation:Optional
+	ParameterOverrideStatuses []*Parameter `json:"parameterOverrideStatuses,omitempty"`
 }
 
 // ClusterParameterGroup is the Schema for the ClusterParameterGroups API
