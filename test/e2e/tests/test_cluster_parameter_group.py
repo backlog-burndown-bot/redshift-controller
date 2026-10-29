@@ -43,22 +43,25 @@ WLM_VALUE = '[{"query_concurrency":5}]'
 STABILITY_WAIT_SECONDS = 30
 
 
+FAMILY_CANDIDATES = ("redshift-2.0", "redshift-1.0")
+
+
 def get_family(redshift_client):
-    """Pick a parameter group family from the account's default.* groups
-    rather than hardcoding one, preferring redshift-2.0."""
-    families = set()
-    marker = None
-    while True:
-        kwargs = {"Marker": marker} if marker else {}
-        resp = redshift_client.describe_cluster_parameter_groups(**kwargs)
-        for g in resp["ParameterGroups"]:
-            if g["ParameterGroupName"].startswith("default."):
-                families.add(g["ParameterGroupFamily"])
-        marker = resp.get("Marker")
-        if not marker:
-            break
-    assert families, "no default.* cluster parameter groups found"
-    return "redshift-2.0" if "redshift-2.0" in families else sorted(families)[-1]
+    """Return the first candidate family AWS has default parameters for.
+
+    The account's default.* groups are not a reliable source: an account that
+    has never created a cluster may list none, so ask
+    DescribeDefaultClusterParameters directly instead."""
+    for family in FAMILY_CANDIDATES:
+        try:
+            resp = redshift_client.describe_default_cluster_parameters(
+                ParameterGroupFamily=family, MaxRecords=20
+            )
+            if resp["DefaultClusterParameters"].get("Parameters"):
+                return family
+        except ClientError as e:
+            logging.info("family %s unavailable: %s", family, e)
+    pytest.fail(f"none of {FAMILY_CANDIDATES} has default parameters")
 
 
 def get_default_parameters(redshift_client, family):
