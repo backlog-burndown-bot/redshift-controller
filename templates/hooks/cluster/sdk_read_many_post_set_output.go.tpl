@@ -7,3 +7,4 @@
 	if observed := observedCluster(resp.Clusters, ko.Spec.Identifier); observed != nil {
 		setObservedSpecFields(ko, observed)
 	}
+	keepEquivalentKMSKeyIDs(&ko.Spec, &r.ko.Spec)

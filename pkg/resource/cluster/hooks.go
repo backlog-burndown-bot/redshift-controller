@@ -24,6 +24,7 @@ import (
 	"time"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
+	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -132,18 +133,45 @@ func setObservedSpecFields(ko *svcapitypes.Cluster, observed *svcsdktypes.Cluste
 	}
 }
 
-// observedCluster returns the DescribeClusters entry for identifier, or the
-// first entry when none matches by name.
+// observedCluster returns the DescribeClusters entry for identifier, or nil
+// when none matches, so the read hook never copies another cluster's values.
 func observedCluster(clusters []svcsdktypes.Cluster, identifier *string) *svcsdktypes.Cluster {
 	for i := range clusters {
 		if identifier != nil && clusters[i].ClusterIdentifier != nil && *clusters[i].ClusterIdentifier == *identifier {
 			return &clusters[i]
 		}
 	}
-	if len(clusters) > 0 {
-		return &clusters[0]
-	}
 	return nil
+}
+
+// kmsKeyIDOf returns the key ID part of a KMS key ARN
+// (arn:...:key/<id>), or v unchanged when it is not a key ARN.
+func kmsKeyIDOf(v string) string {
+	if i := strings.LastIndex(v, ":key/"); i >= 0 {
+		return v[i+len(":key/"):]
+	}
+	return v
+}
+
+// keepEquivalentKMSKeyIDs keeps the declared KMS key when AWS reports the same
+// key in the other form (key ID vs key ARN). Without it the delta never closes
+// and every reconcile sends ModifyCluster with KmsKeyId, which re-encrypts the
+// cluster. Alias forms (alias/..., alias ARNs) are not matched.
+func keepEquivalentKMSKeyIDs(latest, desired *svcapitypes.ClusterSpec) {
+	for _, f := range []struct {
+		latest  **string
+		desired *string
+	}{
+		{&latest.KMSKeyID, desired.KMSKeyID},
+		{&latest.MasterPasswordSecretKMSKeyID, desired.MasterPasswordSecretKMSKeyID},
+	} {
+		if *f.latest == nil || f.desired == nil || **f.latest == *f.desired {
+			continue
+		}
+		if kmsKeyIDOf(**f.latest) == kmsKeyIDOf(*f.desired) {
+			*f.latest = aws.String(*f.desired)
+		}
+	}
 }
 
 // applyResizeCoupling makes a user-declared NodeType, NumberOfNodes or Type
@@ -193,7 +221,8 @@ func modifyClusterInputIsEmpty(input *svcsdk.ModifyClusterInput) bool {
 
 // setDeleteOptions fills the DeleteCluster options from annotations. Nothing
 // is defaulted: without the annotations AWS requires a final snapshot
-// identifier, so delete fails (retryably) until the user adds one.
+// identifier, so delete fails (retryably) until the user adds one; see
+// deleteOptionsHint for the error the user then sees.
 func setDeleteOptions(annotations map[string]string, input *svcsdk.DeleteClusterInput) error {
 	if v, ok := annotations[AnnotationSkipFinalSnapshot]; ok {
 		skip, err := strconv.ParseBool(v)
@@ -214,6 +243,32 @@ func setDeleteOptions(annotations map[string]string, input *svcsdk.DeleteCluster
 		input.FinalClusterSnapshotRetentionPeriod = &period
 	}
 	return nil
+}
+
+// deleteOptionsHint adds the delete annotations' names to a DeleteCluster
+// error when the user set neither, so the condition message says what to add.
+// The missing-snapshot error is not one of DeleteCluster's modeled faults, so
+// those are passed through without the hint. The AWS error is wrapped, not
+// replaced, so its classification is unchanged.
+func deleteOptionsHint(annotations map[string]string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if awsErr, ok := ackerr.AWSError(err); ok {
+		switch awsErr.ErrorCode() {
+		case "ClusterNotFound", "ClusterSnapshotAlreadyExists", "ClusterSnapshotQuotaExceeded",
+			"InvalidClusterState", "InvalidRetentionPeriodFault":
+			return err
+		}
+	}
+	if _, ok := annotations[AnnotationSkipFinalSnapshot]; ok {
+		return err
+	}
+	if v, ok := annotations[AnnotationFinalSnapshotIdentifier]; ok && v != "" {
+		return err
+	}
+	return fmt.Errorf("%w; to delete the cluster, set annotation %s: \"true\" or %s: <snapshot-id>",
+		err, AnnotationSkipFinalSnapshot, AnnotationFinalSnapshotIdentifier)
 }
 
 // iamRoleChanges returns the role ARNs to add and remove (sorted) to move

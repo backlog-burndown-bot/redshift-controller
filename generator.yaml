@@ -188,14 +188,14 @@ resources:
         references:
           service_name: kms
           resource: Key
-          path: Status.KeyID
+          path: Status.ACKResourceMetadata.ARN
       MasterPasswordSecretKmsKeyId:
         late_initialize:
           skip_incomplete_check: {}
         references:
           service_name: kms
           resource: Key
-          path: Status.KeyID
+          path: Status.ACKResourceMetadata.ARN
       ElasticIp:
         references:
           service_name: ec2
@@ -241,6 +241,8 @@ resources:
         template_path: hooks/cluster/sdk_update_post_set_output.go.tpl
       sdk_delete_post_build_request:
         template_path: hooks/cluster/sdk_delete_post_build_request.go.tpl
+      sdk_delete_post_request:
+        template_path: hooks/cluster/sdk_delete_post_request.go.tpl
   ClusterParameterGroup:
     fields:
       Name:

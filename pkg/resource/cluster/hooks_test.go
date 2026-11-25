@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/redshift"
 	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	smithy "github.com/aws/smithy-go"
 
 	svcapitypes "github.com/aws-controllers-k8s/redshift-controller/apis/v1alpha1"
 )
@@ -215,11 +216,71 @@ func TestObservedCluster(t *testing.T) {
 	if got := observedCluster(clusters, aws.String("b")); *got.ClusterIdentifier != "b" {
 		t.Fatalf("got %v", got.ClusterIdentifier)
 	}
-	if got := observedCluster(clusters, aws.String("zz")); *got.ClusterIdentifier != "a" {
-		t.Fatalf("fallback: got %v", got.ClusterIdentifier)
+	if got := observedCluster(clusters, aws.String("zz")); got != nil {
+		t.Fatalf("no match: got %v, want nil", got.ClusterIdentifier)
 	}
 	if observedCluster(nil, nil) != nil {
 		t.Fatal("expected nil for no clusters")
+	}
+}
+
+func TestKeepEquivalentKMSKeyIDs(t *testing.T) {
+	const id = "1234abcd-12ab-34cd-56ef-1234567890ab"
+	const arn = "arn:aws:kms:us-west-2:111122223333:key/" + id
+	for _, tc := range []struct {
+		name            string
+		latest, desired *string
+		want            *string
+	}{
+		{"AWS returns ARN, user declared ID", aws.String(arn), aws.String(id), aws.String(id)},
+		{"AWS returns ID, user declared ARN", aws.String(id), aws.String(arn), aws.String(arn)},
+		{"different key stays different", aws.String(arn), aws.String("other"), aws.String(arn)},
+		{"two ARNs of different keys stay different", aws.String(arn),
+			aws.String("arn:aws:kms:us-west-2:111122223333:key/other"), aws.String(arn)},
+		{"undeclared keeps observed", aws.String(arn), nil, aws.String(arn)},
+		{"unset in AWS stays unset", nil, aws.String(id), nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			latest := svcapitypes.ClusterSpec{KMSKeyID: tc.latest, MasterPasswordSecretKMSKeyID: tc.latest}
+			desired := svcapitypes.ClusterSpec{KMSKeyID: tc.desired, MasterPasswordSecretKMSKeyID: tc.desired}
+			keepEquivalentKMSKeyIDs(&latest, &desired)
+			for field, got := range map[string]*string{
+				"KMSKeyID": latest.KMSKeyID, "MasterPasswordSecretKMSKeyID": latest.MasterPasswordSecretKMSKeyID,
+			} {
+				if !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("%s = %v, want %v", field, aws.ToString(got), aws.ToString(tc.want))
+				}
+			}
+		})
+	}
+}
+
+func TestDeleteOptionsHint(t *testing.T) {
+	awsErr := errors.New("InvalidParameterCombination: FinalClusterSnapshotIdentifier is required")
+	if deleteOptionsHint(nil, nil) != nil {
+		t.Fatal("nil error must stay nil")
+	}
+	got := deleteOptionsHint(nil, awsErr)
+	if !errors.Is(got, awsErr) {
+		t.Errorf("hint must wrap the AWS error, got %v", got)
+	}
+	for _, want := range []string{AnnotationSkipFinalSnapshot, AnnotationFinalSnapshotIdentifier} {
+		if !strings.Contains(got.Error(), want) {
+			t.Errorf("hint %q does not name %s", got, want)
+		}
+	}
+	for _, a := range []map[string]string{
+		{AnnotationSkipFinalSnapshot: "false"},
+		{AnnotationFinalSnapshotIdentifier: "snap"},
+	} {
+		if got := deleteOptionsHint(a, awsErr); got != awsErr {
+			t.Errorf("annotations %v: got %v, want the AWS error unchanged", a, got)
+		}
+	}
+	// Modeled DeleteCluster faults are unrelated to the missing snapshot.
+	modeled := &smithy.GenericAPIError{Code: "InvalidClusterState", Message: "cluster is modifying"}
+	if got := deleteOptionsHint(nil, modeled); got != error(modeled) {
+		t.Errorf("modeled fault: got %v, want it unchanged", got)
 	}
 }
 

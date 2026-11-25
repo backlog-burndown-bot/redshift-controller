@@ -721,6 +721,7 @@ func (rm *resourceManager) sdkFind(
 	if observed := observedCluster(resp.Clusters, ko.Spec.Identifier); observed != nil {
 		setObservedSpecFields(ko, observed)
 	}
+	keepEquivalentKMSKeyIDs(&ko.Spec, &r.ko.Spec)
 
 	return &resource{ko}, nil
 }
@@ -2474,6 +2475,8 @@ func (rm *resourceManager) sdkDelete(
 	_ = resp
 	resp, err = rm.sdkapi.DeleteCluster(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteCluster", err)
+	err = deleteOptionsHint(r.ko.GetAnnotations(), err)
+
 	return nil, err
 }
 

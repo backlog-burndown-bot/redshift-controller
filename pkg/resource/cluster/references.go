@@ -618,7 +618,7 @@ func (rm *resourceManager) resolveReferenceForKMSKeyID(
 		if err := getReferencedResourceState_Key(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
 			return hasReferences, err
 		}
-		ko.Spec.KMSKeyID = (*string)(obj.Status.KeyID)
+		ko.Spec.KMSKeyID = (*string)(obj.Status.ACKResourceMetadata.ARN)
 	}
 
 	return hasReferences, nil
@@ -669,11 +669,11 @@ func getReferencedResourceState_Key(
 			"Key",
 			namespace, name)
 	}
-	if obj.Status.KeyID == nil {
+	if obj.Status.ACKResourceMetadata == nil || obj.Status.ACKResourceMetadata.ARN == nil {
 		return ackerr.ResourceReferenceMissingTargetFieldFor(
 			"Key",
 			namespace, name,
-			"Status.KeyID")
+			"Status.ACKResourceMetadata.ARN")
 	}
 	return nil
 }
@@ -706,7 +706,7 @@ func (rm *resourceManager) resolveReferenceForMasterPasswordSecretKMSKeyID(
 		if err := getReferencedResourceState_Key(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
 			return hasReferences, err
 		}
-		ko.Spec.MasterPasswordSecretKMSKeyID = (*string)(obj.Status.KeyID)
+		ko.Spec.MasterPasswordSecretKMSKeyID = (*string)(obj.Status.ACKResourceMetadata.ARN)
 	}
 
 	return hasReferences, nil
