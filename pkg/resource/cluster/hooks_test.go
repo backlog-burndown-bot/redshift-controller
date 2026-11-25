@@ -16,6 +16,7 @@ package cluster
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,6 +26,7 @@ import (
 
 	ackv1alpha1 "github.com/aws-controllers-k8s/runtime/apis/core/v1alpha1"
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
+	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackmetrics "github.com/aws-controllers-k8s/runtime/pkg/metrics"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -255,6 +257,29 @@ func TestKeepEquivalentKMSKeyIDs(t *testing.T) {
 	}
 }
 
+// TestSDKCreateKeepsDeclaredKMSKeyForm checks the create hook wiring:
+// CreateCluster returns the key ARN, and the spec must keep the declared ID.
+func TestSDKCreateKeepsDeclaredKMSKeyForm(t *testing.T) {
+	const id = "1234abcd-12ab-34cd-56ef-1234567890ab"
+	const arn = "arn:aws:kms:us-west-2:123456789012:key/" + id
+	rm, _ := newFakeManager(map[string]string{
+		"CreateCluster": responseXML("CreateCluster",
+			`<Cluster><ClusterIdentifier>my-cluster</ClusterIdentifier><KmsKeyId>`+arn+`</KmsKeyId></Cluster>`),
+	})
+	desired := newCluster(func(c *svcapitypes.Cluster) {
+		c.Spec.NodeType = aws.String("ra3.large")
+		c.Spec.MasterUsername = aws.String("admin")
+		c.Spec.KMSKeyID = aws.String(id)
+	})
+	created, err := rm.sdkCreate(context.Background(), resourceOf(desired))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := aws.ToString(created.ko.Spec.KMSKeyID); got != id {
+		t.Errorf("spec.kmsKeyID = %q, want the declared %q", got, id)
+	}
+}
+
 func TestDeleteOptionsHint(t *testing.T) {
 	awsErr := errors.New("InvalidParameterCombination: FinalClusterSnapshotIdentifier is required")
 	if deleteOptionsHint(nil, nil) != nil {
@@ -277,6 +302,24 @@ func TestDeleteOptionsHint(t *testing.T) {
 			t.Errorf("annotations %v: got %v, want the AWS error unchanged", a, got)
 		}
 	}
+	// An API error keeps its code and fault, and the condition text (the inner
+	// API error's own message, as updateConditions reads it) carries the hint.
+	missing := fmt.Errorf("operation error Redshift: DeleteCluster: %w", &smithy.GenericAPIError{
+		Code:    "InvalidParameterCombination",
+		Message: "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified.",
+		Fault:   smithy.FaultClient,
+	})
+	inner, ok := ackerr.AWSError(deleteOptionsHint(nil, missing))
+	if !ok {
+		t.Fatal("hinted error must still be an AWS API error")
+	}
+	if inner.ErrorCode() != "InvalidParameterCombination" || inner.ErrorFault() != smithy.FaultClient {
+		t.Errorf("code/fault changed: %s/%v", inner.ErrorCode(), inner.ErrorFault())
+	}
+	if !strings.Contains(inner.Error(), AnnotationSkipFinalSnapshot) {
+		t.Errorf("condition text %q does not name %s", inner.Error(), AnnotationSkipFinalSnapshot)
+	}
+
 	// Modeled DeleteCluster faults are unrelated to the missing snapshot.
 	modeled := &smithy.GenericAPIError{Code: "InvalidClusterState", Message: "cluster is modifying"}
 	if got := deleteOptionsHint(nil, modeled); got != error(modeled) {

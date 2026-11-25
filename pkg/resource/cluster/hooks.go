@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/redshift"
 	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	smithy "github.com/aws/smithy-go"
 
 	svcapitypes "github.com/aws-controllers-k8s/redshift-controller/apis/v1alpha1"
 )
@@ -248,8 +249,9 @@ func setDeleteOptions(annotations map[string]string, input *svcsdk.DeleteCluster
 // deleteOptionsHint adds the delete annotations' names to a DeleteCluster
 // error when the user set neither, so the condition message says what to add.
 // The missing-snapshot error is not one of DeleteCluster's modeled faults, so
-// those are passed through without the hint. The AWS error is wrapped, not
-// replaced, so its classification is unchanged.
+// those are passed through without the hint. An API error is rebuilt with the
+// same code and fault and the hint appended to its message, so classification
+// is unchanged; other errors are wrapped with %w.
 func deleteOptionsHint(annotations map[string]string, err error) error {
 	if err == nil {
 		return nil
@@ -267,8 +269,19 @@ func deleteOptionsHint(annotations map[string]string, err error) error {
 	if v, ok := annotations[AnnotationFinalSnapshotIdentifier]; ok && v != "" {
 		return err
 	}
-	return fmt.Errorf("%w; to delete the cluster, set annotation %s: \"true\" or %s: <snapshot-id>",
-		err, AnnotationSkipFinalSnapshot, AnnotationFinalSnapshotIdentifier)
+	hint := fmt.Sprintf("; to delete the cluster, set annotation %s: \"true\" or %s: <snapshot-id>",
+		AnnotationSkipFinalSnapshot, AnnotationFinalSnapshotIdentifier)
+	// The generated updateConditions writes the inner API error's own
+	// message to the condition, so a %w wrapper's text would only reach the
+	// log. Rebuild the API error with the hint, keeping its code and fault.
+	if awsErr, ok := ackerr.AWSError(err); ok {
+		return &smithy.GenericAPIError{
+			Code:    awsErr.ErrorCode(),
+			Message: awsErr.ErrorMessage() + hint,
+			Fault:   awsErr.ErrorFault(),
+		}
+	}
+	return fmt.Errorf("%w%s", err, hint)
 }
 
 // iamRoleChanges returns the role ARNs to add and remove (sorted) to move

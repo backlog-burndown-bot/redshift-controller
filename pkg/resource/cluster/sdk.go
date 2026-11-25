@@ -1407,6 +1407,8 @@ func (rm *resourceManager) sdkCreate(
 		arn := ackv1alpha1.AWSResourceName(rm.clusterARN(*ko.Spec.Identifier))
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
+	// CreateCluster reports a KMS key as its ARN; keep the user's form.
+	keepEquivalentKMSKeyIDs(&ko.Spec, &desired.ko.Spec)
 
 	if ko.Spec.DefaultIAMRoleARN != nil || ko.Spec.IAMRoles != nil || ko.Spec.SnapshotScheduleIdentifier != nil || ko.Spec.Tags != nil {
 		msg := "Secondary sync required; resource will be requeued"
